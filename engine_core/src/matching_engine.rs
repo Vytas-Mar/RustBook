@@ -1,6 +1,6 @@
 use crate::depth::*;
 use crate::order::Order;
-use crate::orderbook::{self, Orderbook};
+use crate::orderbook::Orderbook;
 use crate::side::Side;
 use crate::trade::Trade;
 use serde::*;
@@ -13,6 +13,8 @@ pub struct MatchingEngine {
 }
 
 impl MatchingEngine {
+    pub const PRICE_SCALE: u64 = 100;
+
     pub fn new(book: Orderbook) -> MatchingEngine {
         MatchingEngine {
             book,
@@ -109,6 +111,10 @@ impl MatchingEngine {
 
     pub fn depth_snapshot(&self) -> DepthSnapshot {
         DepthSnapshot::from_book(&self.book)
+    }
+
+    pub fn drain_trades(&mut self) -> Vec<Trade> {
+        std::mem::take(&mut self.trades)
     }
 }
 

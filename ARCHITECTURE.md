@@ -205,12 +205,21 @@ npm run build
 | `PRICE_SCALE` lives in JS only | Keeps the Rust engine pure-integer. Tradeoff: drift risk if UI assumes wrong scale. |
 | WASM via `wasm-bindgen` + `serde-wasm-bindgen` | Standard tooling; `u64` → `BigInt` preserves precision; struct serialization "just works." |
 
+## Testing
+
+16 unit tests across `price_level`, `orderbook`, `trade`, and `matching_engine` covering data-structure mechanics, insertion, best-price helpers, and engine contracts (clean state, monotonic ID allocation).
+
+9 integration tests in `engine_core/tests/matching.rs` exercising the matching algorithm end-to-end through the public `place_limit_order` API. Scenarios: unmatched-rests, no-cross, exact fill, partial fill (taker > maker), partial fill (maker > taker), multi-level buy-side sweep, multi-level sell-side sweep, FIFO at same price.
+
+Shared invariant helper in `engine_core/tests/common/mod.rs` enforces six structural rules after every integration test: no empty levels stored, quantity conservation (`total_qty` matches order sum), no zero-qty orders retained, price priority (no crossed book), FIFO per level (monotonic ids), and side correctness (orders on the right side of the book).
+
+Run all: `cargo test -p engine_core`. Run integration only: `cargo test --test matching`.
+
 ## Known limitations (today)
 
 - **Only limit orders.** No market, IOC, FOK, post-only, stop, hidden, iceberg.
 - **No cancel or amend.** Orders only leave the book by being matched.
 - **Trade history grows unbounded.** `trades()` clones the entire vector each call. Real fix is `drain_trades()` (mem::take).
-- **Single test.** Only insertion sanity covered. Matching algorithm has no algorithmic tests yet.
 - **No persistence.** Restart loses everything.
 - **Single symbol.** No symbol routing.
 - **No risk gates.** Fat-finger / notional / max-qty checks absent.

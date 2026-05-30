@@ -1,21 +1,44 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { WasmEngine, WasmSide } from "engine_wasm";
+import { Toaster, toast } from "sonner";
 import "./App.css";
 import DepthPanel from "./components/DepthPanel";
+import MarketMakerPanel from "./components/MarketMakerPanel";
+import MetricsPanel from "./components/MetricsPanel";
+import OpenOrdersPanel from "./components/OpenOrdersPanel";
 import OrderEntryPanel from "./components/OrderEntryPanel";
+import ReplayPanel from "./components/ReplayPanel";
+import SimulationPanel from "./components/SimulationPanel";
 import TopBar from "./components/TopBar";
 import TradesPanel from "./components/TradesPanel";
 
-const PRICE_SCALE = 100;
+const PRICE_SCALE = Number(engineRef.current.price_scale);
+
+const TABS = [
+  {
+    id: "orders",
+    label: "Open Orders",
+    stage: "Stage 6",
+    Panel: OpenOrdersPanel,
+  },
+  {
+    id: "simulation",
+    label: "Simulation",
+    stage: "Stage 3",
+    Panel: SimulationPanel,
+  },
+  { id: "replay", label: "Replay", stage: "Stage 4", Panel: ReplayPanel },
+  { id: "metrics", label: "Metrics", stage: "Stage 5", Panel: MetricsPanel },
+  { id: "mm", label: "Market Maker", stage: "Tier 2", Panel: MarketMakerPanel },
+];
 
 function App() {
   const engineRef = useRef(null);
-  const alertTimerRef = useRef(null);
   const [wasmReady, setWasmReady] = useState(false);
   const [wasmError, setWasmError] = useState("");
-  const [uiAlert, setUiAlert] = useState(null);
   const [depth, setDepth] = useState({ bids: [], asks: [] });
   const [tradesList, setTradesList] = useState([]);
+  const [activeTab, setActiveTab] = useState("orders");
 
   const refreshSnapshot = useCallback(() => {
     const eng = engineRef.current;
@@ -23,7 +46,7 @@ function App() {
 
     try {
       const snap = eng.orderbook_depth_state();
-      const rawTrades = eng.trades();
+      const newTrades = eng.drain_trades();
 
       const buildSide = (rows) => {
         let cum = 0;
@@ -39,32 +62,24 @@ function App() {
       };
 
       setDepth({ bids: buildSide(snap.bids), asks: buildSide(snap.asks) });
-      setTradesList(
-        rawTrades
+
+      if (newTrades.length > 0) {
+        const formatted = newTrades
           .map((t) => ({
-            time: new Date(Number(t.timestamp / 1_000_000n)).toLocaleTimeString(),
+            time: new Date(
+              Number(t.timestamp / 1_000_000n),
+            ).toLocaleTimeString(),
             side: String(t.taker_side).toUpperCase(),
             price: (Number(t.price) / PRICE_SCALE).toFixed(2),
             qty: Number(t.qty).toFixed(2),
           }))
-          .reverse(),
-      );
+          .reverse();
+        setTradesList((prev) => [...formatted, ...prev]);
+      }
     } catch (err) {
       console.error("Snapshot failed:", err);
     }
   }, []);
-
-  const showAlert = (type, message) => {
-    if (alertTimerRef.current) {
-      clearTimeout(alertTimerRef.current);
-    }
-
-    setUiAlert({ type, message });
-    alertTimerRef.current = setTimeout(() => {
-      setUiAlert(null);
-      alertTimerRef.current = null;
-    }, 2200);
-  };
 
   useEffect(() => {
     let mounted = true;
@@ -81,9 +96,6 @@ function App() {
     }
 
     return () => {
-      if (alertTimerRef.current) {
-        clearTimeout(alertTimerRef.current);
-      }
       mounted = false;
     };
   }, [refreshSnapshot]);
@@ -102,7 +114,7 @@ function App() {
   const handleAddTestTrade = () => {
     if (!engineRef.current) {
       console.warn("WASM engine is not ready yet");
-      showAlert("error", "Engine is not ready yet");
+      toast.error("Engine is not ready yet");
       return;
     }
 
@@ -128,13 +140,10 @@ function App() {
       engineRef.current.place_limit_order(scaledPrice, BigInt(qty), wasmSide);
       console.log("Placed order:", { price, qty, side, scaledPrice });
       refreshSnapshot();
-      showAlert(
-        "success",
-        `Order placed: ${side.toUpperCase()} ${qty} @ ${price}`,
-      );
+      toast.success(`Order placed: ${side.toUpperCase()} ${qty} @ ${price}`);
     } catch (error) {
       console.error("WASM call failed:", error);
-      showAlert("error", "Failed to place order");
+      toast.error("Failed to place order");
     }
   };
 
@@ -146,10 +155,8 @@ function App() {
 
   return (
     <main className="screen">
+      <Toaster position="top-right" theme="dark" richColors />
       <TopBar statusText={statusText} />
-      {uiAlert && (
-        <p className={`order-alert ${uiAlert.type}`}>{uiAlert.message}</p>
-      )}
 
       <section className="grid">
         <OrderEntryPanel
@@ -159,6 +166,26 @@ function App() {
         />
         <DepthPanel bids={depth.bids} asks={depth.asks} />
         <TradesPanel trades={tradesList} />
+      </section>
+
+      <section className="dashboard">
+        <nav className="tab-nav">
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              className={`tab ${activeTab === tab.id ? "active" : ""}`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.label}
+              <span className="tab-stage">{tab.stage}</span>
+            </button>
+          ))}
+        </nav>
+
+        {TABS.map(({ id, Panel }) =>
+          id === activeTab ? <Panel key={id} /> : null,
+        )}
       </section>
     </main>
   );

@@ -1,7 +1,4 @@
-use crate::{
-    Orderbook,
-    price_level::{self, PriceLevel},
-};
+use crate::{Orderbook, price_level::PriceLevel};
 
 use serde::*;
 

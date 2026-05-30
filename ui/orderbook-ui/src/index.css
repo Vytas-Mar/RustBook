@@ -1,12 +1,26 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
 :root {
-  font-family:
-    'IBM Plex Sans',
-    'Segoe UI',
-    sans-serif;
+  --bg: #0a0a0b;
+  --bg-elevated: #111114;
+  --bg-hover: #16161b;
+  --border: #1f1f24;
+  --border-strong: #2a2a30;
+  --text: #fafafb;
+  --text-muted: #b4b4bc;
+  --text-dim: #7c7c84;
+  --accent: #7dd3fc;
+  --bid: #2dd4a4;
+  --ask: #ef5a5a;
+  --bid-bg: rgba(45, 212, 164, 0.10);
+  --ask-bg: rgba(239, 90, 90, 0.10);
+
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  color-scheme: dark;
 }
 
 * {
@@ -17,6 +31,6 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: radial-gradient(circle at top right, #23304d 0%, #0b1120 40%, #060a14 100%);
-  color: #e8eefc;
+  background: var(--bg);
+  color: var(--text);
 }

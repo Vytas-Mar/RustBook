@@ -49,6 +49,16 @@ impl WasmEngine {
         let snapshot = self.inner.depth_snapshot();
         serde_wasm_bindgen::to_value(&snapshot).map_err(|e| JsValue::from_str(&e.to_string()))
     }
+
+    pub fn drain_trades(&mut self) -> Result<JsValue, JsValue> {
+        let drained = self.inner.drain_trades();
+        serde_wasm_bindgen::to_value(&drained).map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+
+    #[wasm_bindgen]
+    pub fn price_scale() -> u64 {
+        engine_core::MatchingEngine::PRICE_SCALE
+    }
 }
 
 #[wasm_bindgen(start)]

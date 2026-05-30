@@ -1,5 +1,8 @@
 import { useState } from "react";
 
+const PRICE_MAX = 200;
+const QTY_MAX = 100;
+
 const OrderEntryPanel = ({ onLogEngine, onAddTestTrade, onPlaceOrder }) => {
   const [side, setSide] = useState("buy");
   const [price, setPrice] = useState("");
@@ -22,39 +25,83 @@ const OrderEntryPanel = ({ onLogEngine, onAddTestTrade, onPlaceOrder }) => {
     });
   };
 
+  const priceSliderValue = price === "" ? 0 : Number(price);
+  const qtySliderValue = qty === "" ? 0 : Number(qty);
+
   return (
     <aside className="panel">
       <h2>Order Entry</h2>
+
+      <div className="order-type-pills">
+        <button
+          type="button"
+          className={`order-type-pill ${side === "buy" ? "active buy" : ""}`}
+          onClick={() => setSide("buy")}
+        >
+          Buy
+        </button>
+        <button
+          type="button"
+          className={`order-type-pill ${side === "sell" ? "active sell" : ""}`}
+          onClick={() => setSide("sell")}
+        >
+          Sell
+        </button>
+      </div>
+
+      <div className="order-type-pills">
+        <button type="button" className="order-type-pill active">Limit</button>
+        <button type="button" className="order-type-pill disabled" disabled>Market</button>
+        <button type="button" className="order-type-pill disabled" disabled>Stop</button>
+      </div>
+
+      <div className="order-type-pills">
+        <button type="button" className="order-type-pill active">GTC</button>
+        <button type="button" className="order-type-pill disabled" disabled>IOC</button>
+        <button type="button" className="order-type-pill disabled" disabled>FOK</button>
+        <button type="button" className="order-type-pill disabled" disabled>Post</button>
+      </div>
+
       <form className="order-form">
         <label>
-          Side
-          <select
-            value={side}
-            onChange={(event) => setSide(event.target.value)}
-          >
-            <option value="buy">Buy</option>
-            <option value="sell">Sell</option>
-          </select>
-        </label>
-        <label>
           Price
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={price}
-            onChange={(event) => setPrice(event.target.value)}
-          />
+          <div className="input-with-slider">
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={price}
+              onChange={(event) => setPrice(event.target.value)}
+            />
+            <input
+              type="range"
+              min="0"
+              max={PRICE_MAX}
+              step="0.01"
+              value={priceSliderValue}
+              onChange={(event) => setPrice(event.target.value)}
+            />
+          </div>
         </label>
         <label>
           Quantity
-          <input
-            type="number"
-            min="0"
-            step="1"
-            value={qty}
-            onChange={(event) => setQty(event.target.value)}
-          />
+          <div className="input-with-slider">
+            <input
+              type="number"
+              min="0"
+              step="1"
+              value={qty}
+              onChange={(event) => setQty(event.target.value)}
+            />
+            <input
+              type="range"
+              min="0"
+              max={QTY_MAX}
+              step="1"
+              value={qtySliderValue}
+              onChange={(event) => setQty(event.target.value)}
+            />
+          </div>
         </label>
         <div className="actions single-action">
           <button
