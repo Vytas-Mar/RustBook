@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { WasmEngine, WasmSide } from "engine_wasm";
+import * as Tooltip from "@radix-ui/react-tooltip";
 import { Toaster, toast } from "sonner";
 import "./App.css";
 import DepthPanel from "./components/DepthPanel";
@@ -13,6 +14,16 @@ import TopBar from "./components/TopBar";
 import TradesPanel from "./components/TradesPanel";
 
 const PRICE_SCALE = Number(WasmEngine.price_scale());
+
+const DEFAULT_SIM_CONFIG = {
+  seed: 42,
+  mid_price: 10000,
+  price_spread: 50,
+  min_qty: 1,
+  max_qty: 100,
+  market_order_prob: 0.1,
+  lambda_per_sec: 1000.0,
+};
 
 const TABS = [
   {
@@ -39,6 +50,8 @@ function App() {
   const [depth, setDepth] = useState({ bids: [], asks: [] });
   const [tradesList, setTradesList] = useState([]);
   const [activeTab, setActiveTab] = useState("orders");
+  const [simMetrics, setSimMetrics] = useState(null);
+  const activeSimConfigRef = useRef(null);
 
   const refreshSnapshot = useCallback(() => {
     const eng = engineRef.current;
@@ -46,7 +59,7 @@ function App() {
 
     try {
       const snap = eng.orderbook_depth_state();
-      const newTrades = eng.drain_trades();
+      const newTrades = eng.trades();
 
       const buildSide = (rows) => {
         let cum = 0;
@@ -127,6 +140,55 @@ function App() {
     }
   };
 
+  const handleBurst = useCallback(
+    (n, config) => {
+      const eng = engineRef.current;
+      if (!eng) return;
+
+      try {
+        const configKey = JSON.stringify(config);
+        if (activeSimConfigRef.current !== configKey) {
+          eng.start_simulation({
+            seed: BigInt(config.seed),
+            mid_price: BigInt(config.mid_price),
+            price_spread: BigInt(config.price_spread),
+            min_qty: BigInt(config.min_qty),
+            max_qty: BigInt(config.max_qty),
+            market_order_prob: config.market_order_prob,
+            lambda_per_sec: config.lambda_per_sec,
+          });
+          activeSimConfigRef.current = configKey;
+        }
+
+        const t0 = performance.now();
+        const result = eng.burst(BigInt(n));
+        const wall_ms = performance.now() - t0;
+
+        refreshSnapshot();
+
+        const orders_placed = Number(result.orders_placed);
+        const trades_executed = Number(result.trades_executed);
+        const seconds = wall_ms / 1000;
+
+        setSimMetrics({
+          orders_placed,
+          trades_executed,
+          wall_ms,
+          orders_per_sec: seconds > 0 ? orders_placed / seconds : 0,
+          trades_per_sec: seconds > 0 ? trades_executed / seconds : 0,
+        });
+
+        toast.success(
+          `Burst ${n}: ${trades_executed} trades in ${wall_ms.toFixed(1)} ms`,
+        );
+      } catch (err) {
+        console.error("Burst failed:", err);
+        toast.error("Burst failed");
+      }
+    },
+    [refreshSnapshot],
+  );
+
   const handlePlaceOrder = ({ type, price, qty, side }) => {
     if (!engineRef.current) {
       console.warn("WASM engine is not ready yet");
@@ -176,40 +238,53 @@ function App() {
       : "WASM loading";
 
   return (
-    <main className="screen">
-      <Toaster position="top-right" theme="dark" richColors />
-      <TopBar statusText={statusText} />
+    <Tooltip.Provider delayDuration={150}>
+      <main className="screen">
+        <Toaster position="top-right" theme="dark" richColors />
+        <TopBar statusText={statusText} />
 
-      <section className="grid">
-        <OrderEntryPanel
-          onLogEngine={handleLogEngine}
-          onAddTestTrade={handleAddTestTrade}
-          onPlaceOrder={handlePlaceOrder}
-        />
-        <DepthPanel bids={depth.bids} asks={depth.asks} />
-        <TradesPanel trades={tradesList} />
-      </section>
+        <section className="grid">
+          <OrderEntryPanel
+            onLogEngine={handleLogEngine}
+            onAddTestTrade={handleAddTestTrade}
+            onPlaceOrder={handlePlaceOrder}
+          />
+          <DepthPanel bids={depth.bids} asks={depth.asks} />
+          <TradesPanel trades={tradesList} />
+        </section>
 
-      <section className="dashboard">
-        <nav className="tab-nav">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              className={`tab ${activeTab === tab.id ? "active" : ""}`}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              {tab.label}
-              <span className="tab-stage">{tab.stage}</span>
-            </button>
-          ))}
-        </nav>
+        <section className="dashboard">
+          <nav className="tab-nav">
+            {TABS.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                className={`tab ${activeTab === tab.id ? "active" : ""}`}
+                onClick={() => setActiveTab(tab.id)}
+              >
+                {tab.label}
+                <span className="tab-stage">{tab.stage}</span>
+              </button>
+            ))}
+          </nav>
 
-        {TABS.map(({ id, Panel }) =>
-          id === activeTab ? <Panel key={id} /> : null,
-        )}
-      </section>
-    </main>
+          {TABS.map(({ id, Panel }) => {
+            if (id !== activeTab) return null;
+            if (id === "simulation") {
+              return (
+                <Panel
+                  key={id}
+                  onBurst={handleBurst}
+                  metrics={simMetrics}
+                  defaultConfig={DEFAULT_SIM_CONFIG}
+                />
+              );
+            }
+            return <Panel key={id} />;
+          })}
+        </section>
+      </main>
+    </Tooltip.Provider>
   );
 }
 
