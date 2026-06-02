@@ -1,7 +1,15 @@
-const TradesPanel = ({ trades }) => {
+const TradesPanel = ({ trades, totalCount, maxDisplayed }) => {
+  const total = totalCount ?? trades.length;
+  const truncated = maxDisplayed != null && total > maxDisplayed;
+  const label = truncated
+    ? `${total.toLocaleString()} · showing last ${maxDisplayed.toLocaleString()}`
+    : total.toLocaleString();
+
   return (
     <section className="panel trades">
-      <h2>Trades</h2>
+      <h2>
+        Trades<span className="trades-count">{label}</span>
+      </h2>
       <table>
         <thead>
           <tr>

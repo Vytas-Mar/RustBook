@@ -555,10 +555,38 @@ button.place-order:hover:not(.unclickable) {
   border-color: var(--accent);
 }
 
+.depth {
+  height: 50vh;
+  display: flex;
+  flex-direction: column;
+}
+
 .book-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1.25rem;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.book-grid h3 {
+  position: sticky;
+  top: 0;
+  height: 2rem;
+  line-height: 2rem;
+  background: var(--bg-elevated);
+  margin: 0;
+  padding: 0;
+  z-index: 2;
+}
+
+.book-grid thead th {
+  position: sticky;
+  top: 2rem;
+  background: var(--bg-elevated);
+  box-shadow: 0 -1px 0 var(--bg-elevated);
+  z-index: 1;
 }
 
 table {
@@ -633,8 +661,15 @@ tbody tr:hover {
 }
 
 .trades {
-  max-height: 50vh;
+  height: 50vh;
   overflow-y: auto;
+}
+
+.trades-count {
+  margin-left: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  font-weight: 500;
 }
 
 .info-tip {

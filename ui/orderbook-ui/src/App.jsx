@@ -14,6 +14,7 @@ import TopBar from "./components/TopBar";
 import TradesPanel from "./components/TradesPanel";
 
 const PRICE_SCALE = Number(WasmEngine.price_scale());
+const MAX_TRADES_DISPLAYED = 1000;
 
 const DEFAULT_SIM_CONFIG = {
   seed: 42,
@@ -49,6 +50,7 @@ function App() {
   const [wasmError, setWasmError] = useState("");
   const [depth, setDepth] = useState({ bids: [], asks: [] });
   const [tradesList, setTradesList] = useState([]);
+  const [totalTrades, setTotalTrades] = useState(0);
   const [activeTab, setActiveTab] = useState("orders");
   const [simMetrics, setSimMetrics] = useState(null);
   const activeSimConfigRef = useRef(null);
@@ -59,7 +61,7 @@ function App() {
 
     try {
       const snap = eng.orderbook_depth_state();
-      const newTrades = eng.trades();
+      const newTrades = eng.drain_trades();
 
       const buildSide = (rows) => {
         let cum = 0;
@@ -87,7 +89,10 @@ function App() {
             qty: Number(t.qty).toFixed(2),
           }))
           .reverse();
-        setTradesList((prev) => [...formatted, ...prev]);
+        setTradesList((prev) =>
+          [...formatted, ...prev].slice(0, MAX_TRADES_DISPLAYED),
+        );
+        setTotalTrades((prev) => prev + newTrades.length);
       }
     } catch (err) {
       console.error("Snapshot failed:", err);
@@ -250,7 +255,11 @@ function App() {
             onPlaceOrder={handlePlaceOrder}
           />
           <DepthPanel bids={depth.bids} asks={depth.asks} />
-          <TradesPanel trades={tradesList} />
+          <TradesPanel
+          trades={tradesList}
+          totalCount={totalTrades}
+          maxDisplayed={MAX_TRADES_DISPLAYED}
+        />
         </section>
 
         <section className="dashboard">

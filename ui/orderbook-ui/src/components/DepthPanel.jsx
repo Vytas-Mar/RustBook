@@ -35,7 +35,7 @@ const DepthPanel = ({ bids, asks }) => {
   const maxAskTotal = Math.max(...asks.map((row) => row.total));
 
   return (
-    <section className="panel">
+    <section className="panel depth">
       <div className="panel-heading">
         <h2>Depth</h2>
         <span>Levels: {bids.length} / {asks.length}</span>

@@ -84,7 +84,33 @@ const SimulationPanel = ({ onBurst, metrics, defaultConfig }) => {
         </div>
         <div className="stat-grid">
           <div className="stat">
-            <div className="stat-label">Throughput</div>
+            <div className="stat-label">
+              Demo throughput
+              <InfoTip>
+                <strong>Not a benchmark — a live demo metric.</strong>
+                <br />
+                <br />
+                Measures the round-trip:
+                <br />
+                browser → WASM call → Rust burst loop → WASM return → browser.
+                <br />
+                <br />
+                Includes BigInt marshalling, serde serialization of metrics
+                back to JS, and browser timer fuzzing (~100 µs precision for
+                Spectre mitigation). All add overhead that isn't part of the
+                engine itself.
+                <br />
+                <br />
+                Useful as a regression canary while developing. <strong>Not
+                citeable as engine performance.</strong>
+                <br />
+                <br />
+                <strong>
+                  → For real numbers (p50/p99/p99.9 latency from native Rust
+                  criterion benches), see the Metrics tab.
+                </strong>
+              </InfoTip>
+            </div>
             <div className="stat-value">
               {metrics ? `${fmt(metrics.orders_per_sec, 0)} ord/s` : "—"}
             </div>
@@ -98,7 +124,7 @@ const SimulationPanel = ({ onBurst, metrics, defaultConfig }) => {
             <div className="stat-value">{fmt(metrics?.trades_executed)}</div>
           </div>
           <div className="stat">
-            <div className="stat-label">Elapsed</div>
+            <div className="stat-label">Elapsed (wall)</div>
             <div className="stat-value">
               {metrics ? `${fmt(metrics.wall_ms, 1)} ms` : "—"}
             </div>
