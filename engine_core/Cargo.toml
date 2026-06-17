@@ -11,5 +11,20 @@ serde = { version = "1.0.228", features = ["derive"] }
 rand = { version = "0.8", default-features = false, features = ["std_rng"]}
 rand_chacha = "0.3"
 
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 js-sys = "0.3"
+
+[[bench]]
+name = "insert"
+harness = false
+
+[[bench]]
+name = "match"
+harness = false
+
+[[bench]]
+name = "burst"
+harness = false
