@@ -1,11 +1,16 @@
 use super::{order::Order, price_level::PriceLevel, side::Side};
 use serde::Serialize;
-use std::collections::BTreeMap;
+use std::{
+    collections::{BTreeMap, HashMap},
+    hash::Hash,
+};
 
 #[derive(Debug, Serialize)]
 pub struct Orderbook {
     pub bids: BTreeMap<u64, PriceLevel>,
     pub asks: BTreeMap<u64, PriceLevel>,
+    #[serde(skip)]
+    pub index: HashMap<u64, (u64, Side)>,
 }
 
 impl Orderbook {
@@ -13,9 +18,12 @@ impl Orderbook {
         Orderbook {
             bids: BTreeMap::new(),
             asks: BTreeMap::new(),
+            index: HashMap::new(),
         }
     }
     pub fn insert_order(&mut self, order: Order) {
+        self.index.insert(order.id, (order.price, order.side));
+
         let book_side = match order.side {
             Side::Buy => &mut self.bids,
             Side::Sell => &mut self.asks,

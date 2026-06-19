@@ -327,3 +327,81 @@ fn market_buy_sweeps_multiple_levels() {
 
     assert_book_invariants(&engine.book);
 }
+
+#[test]
+fn index_populated_on_insert() {
+    let mut engine = MatchingEngine::new(Orderbook::new());
+
+    let id_a = engine.place_limit_order(100, 5, Side::Buy);
+    let id_b = engine.place_limit_order(101, 3, Side::Buy);
+    let id_c = engine.place_limit_order(200, 7, Side::Sell);
+
+    assert_eq!(engine.book.index.len(), 3);
+    assert_eq!(engine.book.index.get(&id_a), Some(&(100, Side::Buy)));
+    assert_eq!(engine.book.index.get(&id_b), Some(&(101, Side::Buy)));
+    assert_eq!(engine.book.index.get(&id_c), Some(&(200, Side::Sell)));
+
+    assert_book_invariants(&engine.book);
+}
+
+#[test]
+fn index_cleared_on_full_fill() {
+    let mut engine = MatchingEngine::new(Orderbook::new());
+
+    let maker_id = engine.place_limit_order(100, 5, Side::Sell);
+    assert!(engine.book.index.contains_key(&maker_id));
+
+    // Taker fully consumes the maker
+    engine.place_limit_order(100, 5, Side::Buy);
+
+    assert!(
+        !engine.book.index.contains_key(&maker_id),
+        "fully-filled maker should be removed from index"
+    );
+    assert!(engine.book.index.is_empty());
+
+    assert_book_invariants(&engine.book);
+}
+
+#[test]
+fn index_persists_through_partial_fill() {
+    let mut engine = MatchingEngine::new(Orderbook::new());
+
+    let maker_id = engine.place_limit_order(100, 10, Side::Sell);
+
+    // Taker only consumes part of the maker
+    engine.place_limit_order(100, 3, Side::Buy);
+
+    // Maker still rests with qty=7, should still be in index
+    assert_eq!(
+        engine.book.index.get(&maker_id),
+        Some(&(100, Side::Sell)),
+        "partially-filled maker should remain in index"
+    );
+    assert_eq!(engine.book.asks[&100].orders.front().unwrap().qty, 7);
+
+    assert_book_invariants(&engine.book);
+}
+
+#[test]
+fn index_empty_after_full_sweep() {
+    let mut engine = MatchingEngine::new(Orderbook::new());
+
+    // Three resting asks at distinct prices
+    engine.place_limit_order(100, 1, Side::Sell);
+    engine.place_limit_order(101, 1, Side::Sell);
+    engine.place_limit_order(102, 1, Side::Sell);
+    assert_eq!(engine.book.index.len(), 3);
+
+    // Market buy sweeps all of them
+    let (_, filled) = engine.place_market_order(3, Side::Buy);
+    assert_eq!(filled, 3);
+
+    assert!(
+        engine.book.index.is_empty(),
+        "all makers swept, index should be empty"
+    );
+    assert!(engine.book.asks.is_empty());
+
+    assert_book_invariants(&engine.book);
+}

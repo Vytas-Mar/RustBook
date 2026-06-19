@@ -78,11 +78,13 @@ impl MatchingEngine {
                 break;
             }
 
-            let level_emptied = {
+            let (level_emptied, removed_ids) = {
                 let level = match order.side {
                     Side::Buy => self.book.asks.get_mut(&best_price).unwrap(),
                     Side::Sell => self.book.bids.get_mut(&best_price).unwrap(),
                 };
+
+                let mut removed_ids: Vec<u64> = Vec::new();
 
                 while order.qty > 0 {
                     let (maker_id, fill_qty, should_pop) = {
@@ -109,11 +111,16 @@ impl MatchingEngine {
 
                     if should_pop {
                         level.orders.pop_front();
+                        removed_ids.push(maker_id);
                     }
                 }
 
-                level.orders.is_empty()
+                (level.orders.is_empty(), removed_ids)
             };
+
+            for id in removed_ids {
+                self.book.index.remove(&id);
+            }
 
             if level_emptied {
                 match order.side {

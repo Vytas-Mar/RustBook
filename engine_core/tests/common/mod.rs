@@ -115,4 +115,27 @@ pub fn assert_book_invariants(book: &Orderbook) {
             )
         }
     }
+
+    assert_index_consistent(book);
+}
+
+pub fn assert_index_consistent(book: &Orderbook) {
+    use std::collections::HashSet;
+
+    let mut from_levels: HashSet<(u64, u64, Side)> = HashSet::new();
+    for (&price, level) in &book.bids {
+        for order in &level.orders {
+            from_levels.insert((order.id, price, Side::Buy));
+        }
+    }
+    for (&price, level) in &book.asks {
+        for order in &level.orders {
+            from_levels.insert((order.id, price, Side::Sell));
+        }
+    }
+
+    let from_index: HashSet<(u64, u64, Side)> =
+        book.index.iter().map(|(&id, &(p, s))| (id, p, s)).collect();
+
+    assert_eq!(from_levels, from_index, "index out of sync with book");
 }
