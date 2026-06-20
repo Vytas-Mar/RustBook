@@ -89,7 +89,9 @@ fn measure_market_sweep(n_levels: usize, repetitions: u64) -> Histogram<u64> {
                 .unwrap();
         }
         let start = Instant::now();
-        engine.place_market_order(n_levels as u64, Side::Buy).unwrap();
+        engine
+            .place_market_order(n_levels as u64, Side::Buy)
+            .unwrap();
         let elapsed_ns = start.elapsed().as_nanos() as u64;
         hist.record(elapsed_ns.max(1)).unwrap();
     }
@@ -133,18 +135,9 @@ fn git_short_hash() -> String {
 
 fn main() {
     let benches = vec![
-        from_hist(
-            "insert_hot_level",
-            &measure_insert_hot_level(100_000),
-        ),
-        from_hist(
-            "market_sweep_10_levels",
-            &measure_market_sweep(10, 10_000),
-        ),
-        from_hist(
-            "burst_n100k_lambda_1k",
-            &measure_burst(100_000, 1_000.0),
-        ),
+        from_hist("insert_hot_level", &measure_insert_hot_level(100_000)),
+        from_hist("market_sweep_10_levels", &measure_market_sweep(10, 10_000)),
+        from_hist("burst_n100k_lambda_1k", &measure_burst(100_000, 1_000.0)),
         from_hist(
             "burst_n100k_lambda_100k",
             &measure_burst(100_000, 100_000.0),

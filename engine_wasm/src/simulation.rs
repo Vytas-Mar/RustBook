@@ -1,5 +1,5 @@
 use crate::engine::WasmEngine;
-use engine_core::simulation::{SimConfig, Simulator, run_burst};
+use engine_core::simulation::{run_burst, SimConfig, Simulator};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]

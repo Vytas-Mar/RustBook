@@ -8,7 +8,9 @@ fn bench_market_sweep(c: &mut Criterion, n: usize) {
                 let mut engine = MatchingEngine::new(Orderbook::new());
                 // Resting asks at prices 100..(100+n), one order per price, qty 1 each
                 for i in 0..n {
-                    engine.place_limit_order(100 + i as u64, 1, Side::Sell).unwrap();
+                    engine
+                        .place_limit_order(100 + i as u64, 1, Side::Sell)
+                        .unwrap();
                 }
                 engine
             },

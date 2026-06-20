@@ -457,11 +457,7 @@ fn cancel_preserves_fifo_at_level() {
 
     engine.cancel_order(id_b).unwrap();
 
-    let remaining: Vec<u64> = engine.book.bids[&100]
-        .orders
-        .iter()
-        .map(|o| o.id)
-        .collect();
+    let remaining: Vec<u64> = engine.book.bids[&100].orders.iter().map(|o| o.id).collect();
     assert_eq!(remaining, vec![id_a, id_c]);
     assert_book_invariants(&engine.book);
 }
@@ -499,11 +495,7 @@ fn amend_down_preserves_fifo_position() {
     engine.amend_order_qty(id_b, 2).unwrap();
 
     // Order still in the same position — front-to-back is still A, B, C
-    let positions: Vec<u64> = engine.book.bids[&100]
-        .orders
-        .iter()
-        .map(|o| o.id)
-        .collect();
+    let positions: Vec<u64> = engine.book.bids[&100].orders.iter().map(|o| o.id).collect();
     assert_eq!(positions, vec![id_a, id_b, id_c]);
 
     // B's qty was reduced

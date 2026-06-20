@@ -48,7 +48,9 @@ fn bench_insert_cold_level(c: &mut Criterion) {
                 let mut engine = MatchingEngine::new(Orderbook::new());
                 // pre-populate: 100 orders at 100 distinct prices (each a fresh level)
                 for i in 0..100 {
-                    engine.place_limit_order(100 + i as u64, 1, Side::Buy).unwrap();
+                    engine
+                        .place_limit_order(100 + i as u64, 1, Side::Buy)
+                        .unwrap();
                 }
                 engine
             },

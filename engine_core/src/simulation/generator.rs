@@ -106,7 +106,10 @@ mod tests {
             }
         }
 
-        assert!(diffs > 50, "expected >50/100 dt_nanos to differ, got {diffs}");
+        assert!(
+            diffs > 50,
+            "expected >50/100 dt_nanos to differ, got {diffs}"
+        );
     }
 
     #[test]
