@@ -4,7 +4,6 @@ import * as Tooltip from "@radix-ui/react-tooltip";
 import { Toaster, toast } from "sonner";
 import "./App.css";
 import DepthPanel from "./components/DepthPanel";
-import MarketMakerPanel from "./components/MarketMakerPanel";
 import MetricsPanel from "./components/MetricsPanel";
 import OpenOrdersPanel from "./components/OpenOrdersPanel";
 import OrderEntryPanel from "./components/OrderEntryPanel";
@@ -35,7 +34,6 @@ const TABS = [
   { id: "replay", label: "Replay", Panel: ReplayPanel },
   { id: "metrics", label: "Metrics", Panel: MetricsPanel },
   { id: "risk", label: "Risk Gate", Panel: RiskPanel },
-  { id: "mm", label: "Market Maker", Panel: MarketMakerPanel },
 ];
 
 function App() {
