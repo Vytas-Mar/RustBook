@@ -19,10 +19,10 @@ pub fn run_burst(engine: &mut MatchingEngine, sim: &mut Simulator, n: u64) -> Bu
 
         match sim_event.order.kind {
             SimOrderKind::Limit { price } => {
-                engine.place_limit_order(price, qty, side);
+                engine.place_limit_order(price, qty, side).unwrap();
             }
             SimOrderKind::Market => {
-                engine.place_market_order(qty, side);
+                engine.place_market_order(qty, side).unwrap();
             }
         }
     }

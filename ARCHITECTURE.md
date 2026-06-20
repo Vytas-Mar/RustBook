@@ -339,6 +339,93 @@ Run all: `cargo test -p engine_core`. Run integration only: `cargo test --test m
 
 See [ROADMAP.md](ROADMAP.md) for what's planned and what's elite.
 
+## Order management & risk (Stage 6)
+
+`MatchingEngine` exposes a full order lifecycle API on top of the matching primitives:
+
+```rust
+pub fn place_limit_order(&mut self, price, qty, side) -> Result<u64, RiskRejection>;
+pub fn place_market_order(&mut self, qty, side)        -> Result<(u64, u64), RiskRejection>;
+pub fn cancel_order(&mut self, id)                     -> Result<u64, CancelError>;
+pub fn amend_order_qty(&mut self, id, new_qty)         -> Result<(), AmendError>;
+pub fn set_risk_gate(&mut self, gate: RiskGate);
+```
+
+### Order ID index
+
+Cancel/amend need to find a specific order in the book without scanning every level. The `Orderbook` carries a `HashMap<u64, (u64, Side)>` (`Orderbook.index`) that maps `order_id → (price, side)`. Insert populates it; matching removes entries when orders fully fill; cancel removes them explicitly; amend leaves them alone (the address doesn't change).
+
+This turns cancel cost from O(N_total_orders) into O(log L + K), where L = number of price levels and K = orders at that one level. At our typical book depth, that's ~sub-microsecond.
+
+The elite alternative is an arena-allocated intrusive doubly-linked list (true O(1) cancel including in-level removal). Requires `unsafe` Rust or the `slotmap` crate; deferred as a future upgrade.
+
+### Cancel semantics
+
+`cancel_order(id) -> Result<u64, CancelError>` returns the canceled qty on success or `Err(OrderNotFound)` if the id isn't in the index. Empty levels are removed from the BTreeMap. The index entry is cleaned up automatically.
+
+### Amend semantics
+
+`amend_order_qty(id, new_qty) -> Result<(), AmendError>` supports **size-down only**. Reducing an order's qty mutates the existing `Order` in place — FIFO position preserved. Size-up returns `Err(SizeIncrease)` (real exchanges treat size-up as cancel + re-place, which loses priority — not modeled in v1). Zero qty returns `Err(InvalidQty)` (caller should use `cancel_order` explicitly).
+
+### Pre-trade risk gate
+
+`RiskGate` is an optional config with three checks:
+
+```rust
+pub struct RiskGate {
+    pub max_order_qty: Option<u64>,           // single-order quantity cap
+    pub max_notional: Option<u64>,            // single-order price × qty cap
+    pub max_price_deviation: Option<u64>,     // distance from mid (fat-finger)
+}
+```
+
+Each check is `Option`-gated so individual checks can be disabled by leaving them `None`. `RiskGate::default()` is all-`None` (no checks) for test compatibility. `RiskGate::live_defaults()` returns the production-leaning defaults the WASM engine ships with:
+
+| Field | Default | Meaning (at PRICE_SCALE=100) |
+|---|---|---|
+| `max_order_qty` | 10,000 | Single-order qty cap — 100× typical simulator output |
+| `max_notional` | 100,000,000 | $1,000,000 fat-finger ceiling per order |
+| `max_price_deviation` | 2,000 | $20 max distance from mid (~20% at $100 mid) — only checked when both sides have liquidity |
+
+**Market orders only check `max_order_qty`** — their synthetic price (`u64::MAX` for buy, `0` for sell) would always trip the notional and deviation checks. Bypassing those for markets is intentional: notional/deviation belong to orders with a meaningful caller-specified price.
+
+In real exchanges these checks live in a separate **gateway** in front of the matching engine, not inside it — blast-radius isolation. For this single-process project, integrating into the engine is the simpler tradeoff and demonstrates the concept; the gateway pattern is the natural next step at scale.
+
+### UI surface (Risk tab)
+
+The `Risk Gate` tab in the dashboard lets users edit the three caps live. Defaults are pulled from `WasmEngine.default_risk_gate()` so the form's initial values are guaranteed to match what the Rust side actually applies — no drift between UI and engine.
+
+Buttons:
+- **Apply** — pushes the form values to the engine via `set_risk_gate(...)`.
+- **Reset to defaults** — restores the values from `live_defaults()` (just resets the form; user must still click Apply).
+- **Clear all (disable)** — empties every field, effectively turning the gate off.
+
+### Public surface (engine_core)
+
+```rust
+pub use engine::matching_engine::{
+    AmendError, CancelError, MatchingEngine, RiskGate, RiskRejection,
+};
+```
+
+### WASM bridge
+
+`engine_wasm/src/engine.rs` exposes the full lifecycle to JS:
+
+```ts
+class WasmEngine {
+    place_limit_order(price, qty, side): bigint;        // throws RiskRejection
+    place_market_order(qty, side): bigint[];            // throws RiskRejection
+    cancel_order(id): bigint;                            // throws CancelError
+    amend_order_qty(id, new_qty): void;                  // throws AmendError
+    set_risk_gate(config): void;                         // throws if config invalid
+    clear_risk_gate(): void;
+    static default_risk_gate(): RiskGateConfig;          // expose Rust defaults to JS
+}
+```
+
+All error paths convert the Rust `Err` variant into a `JsValue` (debug-formatted string) which becomes a thrown JS exception. The UI catches it and shows a toast — no panics, no crashes.
+
 ## Replay (Stage 4)
 
 `engine_core::simulation::Replayer` is a self-contained struct that owns its own `MatchingEngine` + `Simulator` + cursor. It exposes `step()` (apply one event, return its `dt_nanos`), `reset()` (clear engine + re-seed simulator from stored config), and `seek(target)` (forward = step the delta; backward = reset + replay). The WASM bridge (`WasmReplayer`) is a thin wrapper exposing the same methods plus `orderbook_depth_state` / `drain_trades`.
@@ -387,3 +474,6 @@ Raw notes for an eventual public README / interview prep. Keep adding bullets he
 > - Seed-based replay over event-stream replay — store the seed (100 bytes) instead of recording every event (KBs to MBs). Works because Stage 3 is deterministic; wouldn't work if I'd mixed in manual UI orders.
 > - Draining trades instead of growing the Vec — chose producer-consumer streaming over database-style accumulation. Bounds memory and serialization cost; loses the ability to query historical trades from Rust (the UI keeps that history instead).
 > - Burst mode ignores `dt_nanos` — discarded real-time pacing to expose engine throughput. Real-time playback honoring `dt` lives in the replay stage; burst is for stressing the engine, replay is for inspecting it.
+> - `HashMap<order_id, (price, side)>` for cancel/amend lookup over an arena+intrusive linked list — chose simple safe Rust. Cancel is O(log L + K) instead of true O(1), but at our scale that's sub-microsecond. Intrusive lists need `unsafe` or `slotmap`; the upgrade path is clear when scale demands it.
+> - Risk gate integrated into the engine vs separate gateway — real exchanges put risk checks in a gateway in front of the matching core for blast-radius isolation. For a single-process project, integrated is simpler and demonstrates the concept; the gateway pattern is the natural next step at scale.
+> - Amend size-down only (size-up rejected) — real exchanges typically allow size-up but treat it as cancel + re-place, losing FIFO priority. My v1 forces the caller to do that explicitly. Cleaner semantics, less hidden behavior.

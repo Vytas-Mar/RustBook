@@ -25,11 +25,13 @@ impl Replayer {
         match event.order.kind {
             SimOrderKind::Limit { price } => {
                 self.engine
-                    .place_limit_order(price, event.order.qty, event.order.side);
+                    .place_limit_order(price, event.order.qty, event.order.side)
+                    .unwrap();
             }
             SimOrderKind::Market => {
                 self.engine
-                    .place_market_order(event.order.qty, event.order.side);
+                    .place_market_order(event.order.qty, event.order.side)
+                    .unwrap();
             }
         }
 

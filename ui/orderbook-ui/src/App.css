@@ -1029,3 +1029,142 @@ tbody tr:hover {
 .bar-value {
   color: var(--text);
 }
+
+/* Risk panel */
+
+.risk-note {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+  margin: 0.75rem 0 1rem;
+  padding: 0.5rem 0.75rem;
+  border-left: 2px solid var(--border-strong);
+}
+
+.risk-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.risk-field {
+  display: grid;
+  grid-template-columns: 1fr 12rem;
+  gap: 1rem;
+  align-items: center;
+}
+
+.risk-field span {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.risk-field small {
+  color: var(--text-dim);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.7rem;
+}
+
+.risk-field input {
+  width: 100%;
+  font-family: "JetBrains Mono", monospace;
+}
+
+/* Open Orders panel */
+
+.open-orders-empty {
+  margin-top: 0.75rem;
+  padding: 1rem;
+  border: 1px dashed var(--border);
+  border-radius: 4px;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.open-orders-scroll {
+  margin-top: 0.5rem;
+  max-height: 45vh;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.open-orders-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.8rem;
+}
+
+.open-orders-table th,
+.open-orders-table td {
+  padding: 0.4rem 0.6rem;
+  text-align: right;
+  border-bottom: 1px solid var(--border);
+}
+
+.open-orders-table th {
+  background: var(--bg);
+  color: var(--text-dim);
+  font-weight: 500;
+  text-transform: uppercase;
+  font-size: 0.65rem;
+  letter-spacing: 0.05em;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.open-orders-table tr:last-child td {
+  border-bottom: none;
+}
+
+.oo-id {
+  color: var(--text-dim);
+  text-align: left;
+}
+
+.oo-cancel {
+  width: 1.75rem;
+  height: 1.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  color: var(--ask);
+  font-size: 1rem;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.oo-cancel:hover {
+  background: rgba(239, 90, 90, 0.15);
+  border-color: var(--ask);
+}
+
+.amend-cell {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.amend-cell input {
+  width: 4rem;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.35rem;
+}
+
+.amend-cell button {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.7rem;
+}

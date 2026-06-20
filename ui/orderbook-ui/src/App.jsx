@@ -9,6 +9,7 @@ import MetricsPanel from "./components/MetricsPanel";
 import OpenOrdersPanel from "./components/OpenOrdersPanel";
 import OrderEntryPanel from "./components/OrderEntryPanel";
 import ReplayPanel from "./components/ReplayPanel";
+import RiskPanel from "./components/RiskPanel";
 import SimulationPanel from "./components/SimulationPanel";
 import TopBar from "./components/TopBar";
 import TradesPanel from "./components/TradesPanel";
@@ -43,6 +44,7 @@ const TABS = [
   },
   { id: "replay", label: "Replay", stage: "Stage 4", Panel: ReplayPanel },
   { id: "metrics", label: "Metrics", stage: "Stage 5", Panel: MetricsPanel },
+  { id: "risk", label: "Risk Gate", stage: "Stage 6", Panel: RiskPanel },
   { id: "mm", label: "Market Maker", stage: "Tier 2", Panel: MarketMakerPanel },
 ];
 
@@ -56,6 +58,7 @@ function App() {
   const [activeTab, setActiveTab] = useState("orders");
   const [simMetrics, setSimMetrics] = useState(null);
   const activeSimConfigRef = useRef(null);
+  const [openOrders, setOpenOrders] = useState([]);
   const [recordings, setRecordings] = useState(() => {
     try {
       const raw = localStorage.getItem(RECORDINGS_STORAGE_KEY);
@@ -114,6 +117,26 @@ function App() {
           [...formatted, ...prev].slice(0, MAX_TRADES_DISPLAYED),
         );
         setTotalTrades((prev) => prev + newTrades.length);
+
+        // Apply trades to open orders: reduce qty when our id is maker or taker.
+        // Drop orders whose qty reaches zero (fully filled).
+        setOpenOrders((prev) =>
+          prev
+            .map((order) => {
+              let remaining = order.qty;
+              for (const t of newTrades) {
+                const tradeQty = Number(t.qty);
+                if (
+                  Number(t.maker_id) === order.id ||
+                  Number(t.taker_id) === order.id
+                ) {
+                  remaining -= tradeQty;
+                }
+              }
+              return { ...order, qty: remaining };
+            })
+            .filter((order) => order.qty > 0),
+        );
       }
     } catch (err) {
       console.error("Snapshot failed:", err);
@@ -166,6 +189,48 @@ function App() {
       console.error("WASM call failed:", error);
     }
   };
+
+  const handleApplyRiskGate = useCallback((config) => {
+    const eng = engineRef.current;
+    if (!eng) throw new Error("WASM engine not ready");
+    eng.set_risk_gate(config);
+  }, []);
+
+  const handleCancelOrder = useCallback(
+    (id) => {
+      const eng = engineRef.current;
+      if (!eng) return;
+      try {
+        eng.cancel_order(BigInt(id));
+        setOpenOrders((prev) => prev.filter((o) => o.id !== id));
+        refreshSnapshot();
+        toast.success(`Canceled order #${id}`);
+      } catch (err) {
+        console.error("Cancel failed:", err);
+        toast.error(`Cancel failed: ${err}`);
+      }
+    },
+    [refreshSnapshot],
+  );
+
+  const handleAmendOrder = useCallback(
+    (id, newQty) => {
+      const eng = engineRef.current;
+      if (!eng) return;
+      try {
+        eng.amend_order_qty(BigInt(id), BigInt(newQty));
+        setOpenOrders((prev) =>
+          prev.map((o) => (o.id === id ? { ...o, qty: newQty } : o)),
+        );
+        refreshSnapshot();
+        toast.success(`Amended order #${id} → qty ${newQty}`);
+      } catch (err) {
+        console.error("Amend failed:", err);
+        toast.error(`Amend failed: ${err}`);
+      }
+    },
+    [refreshSnapshot],
+  );
 
   const handleBurst = useCallback(
     (n, config) => {
@@ -260,13 +325,30 @@ function App() {
       }
 
       const scaledPrice = BigInt(Math.round(price * PRICE_SCALE));
-      engineRef.current.place_limit_order(scaledPrice, BigInt(qty), wasmSide);
-      console.log("Placed limit order:", { price, qty, side, scaledPrice });
+      const id = Number(
+        engineRef.current.place_limit_order(scaledPrice, BigInt(qty), wasmSide),
+      );
+      console.log("Placed limit order:", { id, price, qty, side, scaledPrice });
+
+      // Track as open order; refreshSnapshot will reduce qty based on any
+      // trades this placement triggered, and drop it if fully filled.
+      setOpenOrders((prev) => [
+        ...prev,
+        {
+          id,
+          price: Number(scaledPrice) / PRICE_SCALE,
+          qty: Math.trunc(qty),
+          originalQty: Math.trunc(qty),
+          side,
+          placedAt: Date.now(),
+        },
+      ]);
+
       refreshSnapshot();
       toast.success(`Limit ${sideLabel} ${qty} @ ${price}`);
     } catch (error) {
       console.error("WASM call failed:", error);
-      toast.error("Failed to place order");
+      toast.error(`Order rejected: ${error}`);
     }
   };
 
@@ -329,6 +411,19 @@ function App() {
                   key={id}
                   recordings={recordings}
                   setRecordings={setRecordings}
+                />
+              );
+            }
+            if (id === "risk") {
+              return <Panel key={id} onApply={handleApplyRiskGate} />;
+            }
+            if (id === "orders") {
+              return (
+                <Panel
+                  key={id}
+                  orders={openOrders}
+                  onCancel={handleCancelOrder}
+                  onAmend={handleAmendOrder}
                 />
               );
             }

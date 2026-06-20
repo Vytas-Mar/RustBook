@@ -45,10 +45,14 @@ fn measure_burst(n: u64, lambda: f64) -> Histogram<u64> {
         let start = Instant::now();
         match ev.order.kind {
             SimOrderKind::Limit { price } => {
-                engine.place_limit_order(price, ev.order.qty, ev.order.side);
+                engine
+                    .place_limit_order(price, ev.order.qty, ev.order.side)
+                    .unwrap();
             }
             SimOrderKind::Market => {
-                engine.place_market_order(ev.order.qty, ev.order.side);
+                engine
+                    .place_market_order(ev.order.qty, ev.order.side)
+                    .unwrap();
             }
         }
         let elapsed_ns = start.elapsed().as_nanos() as u64;
@@ -62,13 +66,13 @@ fn measure_insert_hot_level(n: u64) -> Histogram<u64> {
     let mut engine = MatchingEngine::new(Orderbook::new());
     // Pre-populate one hot level
     for _ in 0..100 {
-        engine.place_limit_order(100, 1, Side::Buy);
+        engine.place_limit_order(100, 1, Side::Buy).unwrap();
     }
 
     let mut hist = Histogram::<u64>::new_with_bounds(1, 10_000_000, 3).unwrap();
     for _ in 0..n {
         let start = Instant::now();
-        engine.place_limit_order(100, 1, Side::Buy);
+        engine.place_limit_order(100, 1, Side::Buy).unwrap();
         let elapsed_ns = start.elapsed().as_nanos() as u64;
         hist.record(elapsed_ns.max(1)).unwrap();
     }
@@ -80,10 +84,12 @@ fn measure_market_sweep(n_levels: usize, repetitions: u64) -> Histogram<u64> {
     for _ in 0..repetitions {
         let mut engine = MatchingEngine::new(Orderbook::new());
         for i in 0..n_levels {
-            engine.place_limit_order(100 + i as u64, 1, Side::Sell);
+            engine
+                .place_limit_order(100 + i as u64, 1, Side::Sell)
+                .unwrap();
         }
         let start = Instant::now();
-        engine.place_market_order(n_levels as u64, Side::Buy);
+        engine.place_market_order(n_levels as u64, Side::Buy).unwrap();
         let elapsed_ns = start.elapsed().as_nanos() as u64;
         hist.record(elapsed_ns.max(1)).unwrap();
     }
