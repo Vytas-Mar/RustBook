@@ -501,6 +501,28 @@ button.place-order:hover:not(.unclickable) {
   height: 50vh;
   display: flex;
   flex-direction: column;
+  position: relative;
+}
+
+.depth-empty {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  max-width: 80%;
+  padding: 1rem 1.25rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+.depth-empty strong {
+  color: var(--text);
+  font-weight: 600;
 }
 
 .book-grid-header,

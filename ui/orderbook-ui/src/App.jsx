@@ -134,23 +134,6 @@ function App() {
       window.engine = engineRef.current;
       window.WasmReplayer = WasmReplayer;
 
-      try {
-        const initConfig = { ...DEFAULT_SIM_CONFIG, seed: 7 };
-        engineRef.current.start_simulation({
-          seed: BigInt(initConfig.seed),
-          mid_price: BigInt(initConfig.mid_price),
-          price_spread: BigInt(initConfig.price_spread),
-          min_qty: BigInt(initConfig.min_qty),
-          max_qty: BigInt(initConfig.max_qty),
-          market_order_prob: initConfig.market_order_prob,
-          lambda_per_sec: initConfig.lambda_per_sec,
-        });
-        engineRef.current.burst(200n);
-        activeSimConfigRef.current = JSON.stringify(initConfig);
-      } catch (err) {
-        console.warn("Auto-fill burst failed (non-fatal):", err);
-      }
-
       if (mounted) {
         refreshSnapshot();
       }

@@ -16,7 +16,8 @@ const AmendCell = ({ order, onAmend }) => {
       <input
         type="number"
         min="1"
-        placeholder="qty"
+        max={order.qty - 1}
+        placeholder={`new qty (< ${order.qty})`}
         value={amendQty}
         onChange={(e) => setAmendQty(e.target.value)}
       />

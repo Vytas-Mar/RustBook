@@ -52,6 +52,7 @@ const DepthBody = ({ side, rows, maxTotal }) => {
 const DepthPanel = ({ bids, asks }) => {
   const maxBidTotal = Math.max(...bids.map((row) => row.total));
   const maxAskTotal = Math.max(...asks.map((row) => row.total));
+  const isEmpty = bids.length === 0 && asks.length === 0;
 
   return (
     <section className="panel depth">
@@ -71,6 +72,14 @@ const DepthPanel = ({ bids, asks }) => {
         <DepthBody side="bid" rows={bids} maxTotal={maxBidTotal} />
         <DepthBody side="ask" rows={asks} maxTotal={maxAskTotal} />
       </div>
+
+      {isEmpty && (
+        <div className="depth-empty">
+          Book is empty. Open the <strong>Simulation</strong> tab and click
+          <strong> Burst</strong> to generate synthetic flow, or place a manual
+          order from the panel on the left.
+        </div>
+      )}
     </section>
   );
 };
