@@ -7,7 +7,7 @@ const fmt = (ns) => {
   return `${(ns / 1_000_000).toFixed(2)} ms`;
 };
 
-const TopBar = ({ githubUrl = "https://github.com/vytautasmargelis/trading-engine" }) => {
+const TopBar = ({ githubUrl = "https://github.com/vhytukas/RustBook" }) => {
   const [perf, setPerf] = useState(null);
 
   useEffect(() => {
