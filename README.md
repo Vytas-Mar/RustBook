@@ -1,10 +1,10 @@
-# RustBook
+# RustEngine
 
 A deterministic matching engine in Rust, running in the browser via WebAssembly. Built to demonstrate market-microstructure understanding, low-latency systems thinking, and Rust ownership/borrowing mastery — not as a production exchange, but as a credible research-quality artifact.
 
-**[Live demo](<LIVE_URL>)** · **[Architecture](ARCHITECTURE.md)**
+**[Live demo](https://rust-engine.dev)** · **[Architecture](ARCHITECTURE.md)**
 
-![Order book — RustBook UI](docs/images/orderbook.png)
+![Order book — RustEngine UI](docs/images/orderbook.png)
 
 ## Highlights
 

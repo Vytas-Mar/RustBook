@@ -1,4 +1,4 @@
-# Trading Engine — Architecture
+# RustEngine — Architecture
 
 A Rust matching engine + Level 2 order book that runs in the browser via WebAssembly. Pure Rust core, thin WASM bridge, React frontend. No backend, no persistence.
 

@@ -7,7 +7,7 @@ const fmt = (ns) => {
   return `${(ns / 1_000_000).toFixed(2)} ms`;
 };
 
-const TopBar = ({ githubUrl = "https://github.com/Vytas-Mar/RustBook" }) => {
+const TopBar = ({ githubUrl = "https://github.com/Vytas-Mar/RustEngine" }) => {
   const [perf, setPerf] = useState(null);
 
   useEffect(() => {
@@ -30,7 +30,7 @@ const TopBar = ({ githubUrl = "https://github.com/Vytas-Mar/RustBook" }) => {
   return (
     <header className="hero">
       <div className="hero-brand">
-        <div className="hero-name">RUSTBOOK</div>
+        <div className="hero-name">RUSTENGINE</div>
         <div className="hero-tagline">
           Deterministic matching engine · Rust + WASM
         </div>
