@@ -30,7 +30,7 @@ const TopBar = ({ githubUrl = "https://github.com/Vytas-Mar/RustEngine" }) => {
   return (
     <header className="hero">
       <div className="hero-brand">
-        <div className="hero-name">RUSTENGINE</div>
+        <div className="hero-name">RUST ENGINE</div>
         <div className="hero-tagline">
           Deterministic matching engine · Rust + WASM
         </div>
